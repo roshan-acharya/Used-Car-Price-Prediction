@@ -1,5 +1,4 @@
-"use client"
-
+"use client";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,7 +9,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -19,32 +17,64 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { GithubIcon, Database } from "lucide-react";
+import axios from "@/lib/axios";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { CarFormValues, carFormSchema } from "@/lib/validations/car";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    carName: "",
-    year: "",
-    kmDriven: "",
-    fuelType: "",
-    sellerType: "",
-    transmission: "",
-    owner: "",
-    mileage: "",
-    engine: "",
-    seats: "",
+  const [price, setPrice] = useState<number>(0);
+
+  const form = useForm<CarFormValues>({
+    resolver: zodResolver(carFormSchema),
+    defaultValues: {
+      name: "",
+      year: "",
+      km_driven: "",
+      fuel: "",
+      seller_type: "",
+      transmission: "",
+      owner: "",
+      mileage: "",
+      engine: "",
+      max_power: "",
+    },
   });
 
-  const handlePredict = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsModalOpen(true);
+  const handlePredict = async (values: CarFormValues) => {
+    try {
+      const res = await axios.post("/predict", values);
+      if (res.status === 200) {
+        setIsModalOpen(true);
+        const price = Math.round(res.data.predicted_price * 100) / 100;
+        setPrice(price);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const generateYearOptions = () => {
+    const years = [];
+    for (let i = 0; i < 20; i++) {
+      years.push(2020 - i);
+    }
+    return years;
   };
 
   return (
     <div className="min-h-screen bg-background p-6 md:p-12">
       <main className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Form Section - Left Column */}
           <Card className="lg:col-span-2 p-8 shadow-lg">
             <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
               Used Car Price Predictor
@@ -54,184 +84,274 @@ export default function Home() {
               accuracy.
             </p>
 
-            <form className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="carName">Car Name</Label>
-                <Input
-                  id="carName"
-                  value={formData.carName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, carName: e.target.value })
-                  }
-                  placeholder="e.g., Honda City"
-                  className="transition-all duration-200 focus:scale-[1.02]"
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(handlePredict)}
+                className="grid grid-cols-1 md:grid-cols-2 gap-6"
+              >
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Car Name</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="transition-all duration-200 focus:scale-[1.02]">
+                            <SelectValue placeholder="Select Car Name" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Maruti">Maruti</SelectItem>
+                          <SelectItem value="Skoda">Skoda</SelectItem>
+                          <SelectItem value="Honda">Honda</SelectItem>
+                          <SelectItem value="Hyundai">Hyundai</SelectItem>
+                          <SelectItem value="Toyota">Toyota</SelectItem>
+                          <SelectItem value="Ford">Ford</SelectItem>
+                          <SelectItem value="Renault">Renault</SelectItem>
+                          <SelectItem value="Mahindra">Mahindra</SelectItem>
+                          <SelectItem value="Tata">Tata</SelectItem>
+                          <SelectItem value="Chevrolet">Chevrolet</SelectItem>
+                          <SelectItem value="Fiat">Fiat</SelectItem>
+                          <SelectItem value="Datsun">Datsun</SelectItem>
+                          <SelectItem value="Volkswagen">Volkswagen</SelectItem>
+                          <SelectItem value="Nissan">Nissan</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="year">Year</Label>
-                <Input
-                  id="year"
-                  type="number"
-                  min="1900"
-                  max={new Date().getFullYear()}
-                  value={formData.year}
-                  onChange={(e) =>
-                    setFormData({ ...formData, year: e.target.value })
-                  }
-                  placeholder="e.g., 2020"
-                  className="transition-all duration-200 focus:scale-[1.02]"
+                <FormField
+                  control={form.control}
+                  name="year"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Year</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="transition-all duration-200 focus:scale-[1.02]">
+                            <SelectValue placeholder="Select Year" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {generateYearOptions().map((year) => (
+                            <SelectItem key={year} value={year.toString()}>
+                              {year}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="kmDriven">Kilometers Driven</Label>
-                <Input
-                  id="kmDriven"
-                  type="number"
-                  value={formData.kmDriven}
-                  onChange={(e) =>
-                    setFormData({ ...formData, kmDriven: e.target.value })
-                  }
-                  placeholder="e.g., 50000"
-                  className="transition-all duration-200 focus:scale-[1.02]"
+                <FormField
+                  control={form.control}
+                  name="km_driven"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Kilometers Driven</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="e.g., 120000"
+                          className="transition-all duration-200 focus:scale-[1.02]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="fuelType">Fuel Type</Label>
-                <Select
-                  value={formData.fuelType}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, fuelType: value })
-                  }
-                >
-                  <SelectTrigger className="transition-all duration-200 focus:scale-[1.02]">
-                    <SelectValue placeholder="Select fuel type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="petrol">Petrol</SelectItem>
-                    <SelectItem value="diesel">Diesel</SelectItem>
-                    <SelectItem value="cng">CNG</SelectItem>
-                    <SelectItem value="electric">Electric</SelectItem>
-                    <SelectItem value="lpg">LPG</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="sellerType">Seller Type</Label>
-                <Select
-                  value={formData.sellerType}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, sellerType: value })
-                  }
-                >
-                  <SelectTrigger className="transition-all duration-200 focus:scale-[1.02]">
-                    <SelectValue placeholder="Select seller type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="individual">Individual</SelectItem>
-                    <SelectItem value="dealer">Dealer</SelectItem>
-                    <SelectItem value="trustmark">Trustmark Dealer</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="transmission">Transmission</Label>
-                <Select
-                  value={formData.transmission}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, transmission: value })
-                  }
-                >
-                  <SelectTrigger className="transition-all duration-200 focus:scale-[1.02]">
-                    <SelectValue placeholder="Select transmission" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="manual">Manual</SelectItem>
-                    <SelectItem value="automatic">Automatic</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="owner">Owner Type</Label>
-                <Select
-                  value={formData.owner}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, owner: value })
-                  }
-                >
-                  <SelectTrigger className="transition-all duration-200 focus:scale-[1.02]">
-                    <SelectValue placeholder="Select owner type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="first">First Owner</SelectItem>
-                    <SelectItem value="second">Second Owner</SelectItem>
-                    <SelectItem value="third">Third Owner</SelectItem>
-                    <SelectItem value="fourth">Fourth & Above</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="mileage">Mileage (kmpl)</Label>
-                <Input
-                  id="mileage"
-                  type="number"
-                  value={formData.mileage}
-                  onChange={(e) =>
-                    setFormData({ ...formData, mileage: e.target.value })
-                  }
-                  placeholder="e.g., 15"
-                  className="transition-all duration-200 focus:scale-[1.02]"
+                <FormField
+                  control={form.control}
+                  name="fuel"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Fuel Type</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="transition-all duration-200 focus:scale-[1.02]">
+                            <SelectValue placeholder="Select fuel type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Petrol">Petrol</SelectItem>
+                          <SelectItem value="Diesel">Diesel</SelectItem>
+                          <SelectItem value="CNG">CNG</SelectItem>
+                          <SelectItem value="LPG">LPG</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="engine">Engine (cc)</Label>
-                <Input
-                  id="engine"
-                  type="number"
-                  value={formData.engine}
-                  onChange={(e) =>
-                    setFormData({ ...formData, engine: e.target.value })
-                  }
-                  placeholder="e.g., 1500"
-                  className="transition-all duration-200 focus:scale-[1.02]"
+                <FormField
+                  control={form.control}
+                  name="seller_type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Seller Type</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="transition-all duration-200 focus:scale-[1.02]">
+                            <SelectValue placeholder="Select seller type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Individual">Individual</SelectItem>
+                          <SelectItem value="Dealer">Dealer</SelectItem>
+                          <SelectItem value="Trustmark Dealer">
+                            Trustmark Dealer
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="seats">Number of Seats</Label>
-                <Select
-                  value={formData.seats}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, seats: value })
-                  }
-                >
-                  <SelectTrigger className="transition-all duration-200 focus:scale-[1.02]">
-                    <SelectValue placeholder="Select seats" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[2, 4, 5, 6, 7, 8].map((seat) => (
-                      <SelectItem key={seat} value={seat.toString()}>
-                        {seat} Seats
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </form>
+                <FormField
+                  control={form.control}
+                  name="transmission"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Transmission</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="transition-all duration-200 focus:scale-[1.02]">
+                            <SelectValue placeholder="Select transmission" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Manual">Manual</SelectItem>
+                          <SelectItem value="Automatic">Automatic</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="owner"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Owner Type</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="transition-all duration-200 focus:scale-[1.02]">
+                            <SelectValue placeholder="Select owner type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="First Owner">
+                            First Owner
+                          </SelectItem>
+                          <SelectItem value="Second Owner">
+                            Second Owner
+                          </SelectItem>
+                          <SelectItem value="Third Owner">
+                            Third Owner
+                          </SelectItem>
+                          <SelectItem value="Fourth & Above Owner">
+                            Fourth & Above
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="mileage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Mileage (kmpl)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="e.g., 20"
+                          className="transition-all duration-200 focus:scale-[1.02]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="engine"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Engine (cc)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="e.g., 1500"
+                          className="transition-all duration-200 focus:scale-[1.02]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="max_power"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Max Power</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="e.g., 100"
+                          className="transition-all duration-200 focus:scale-[1.02]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </form>
+            </Form>
           </Card>
 
-          {/* Right Column - Actions and Resources */}
           <div className="lg:col-span-1 space-y-6">
             <Card className="p-8 shadow-lg">
               <Button
-                onClick={handlePredict}
+                onClick={form.handleSubmit(handlePredict)}
                 className="w-full text-lg h-12 transition-all duration-200 hover:scale-[1.02] mb-6"
               >
                 Predict Price
@@ -257,7 +377,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Prediction Modal */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
@@ -266,7 +385,7 @@ export default function Home() {
             <div className="py-4">
               <div className="text-center">
                 <div className="text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                  ₹15,25,000
+                  ₹{price}
                 </div>
                 <p className="text-muted-foreground">
                   Estimated market value based on your inputs
@@ -277,7 +396,7 @@ export default function Home() {
                   <span className="text-muted-foreground">
                     Confidence Score
                   </span>
-                  <span className="font-medium">85%</span>
+                  <span className="font-medium">81.58%</span>
                 </div>
               </div>
             </div>
